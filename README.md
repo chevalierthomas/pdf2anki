@@ -42,6 +42,17 @@ npm run dev
 
 The development server proxies API calls to the FastAPI instance running on port 8000.
 
+## Card extraction heuristics
+
+The backend combines lightweight NLP heuristics to produce higher quality cards:
+
+* **Definitions** — detects "is/are", "est/sont", and colon-based statements in English and French.
+* **Enumerations** — understands bullet lists, numbered steps, and sentences such as "X consists of …" to build Q/A and cloze cards.
+* **Section summaries** — reuses detected headings to create concise recap questions for longer paragraphs.
+* **Language-aware prompts** — question templates automatically switch between English and French based on the `language` field provided in the `/extract` request.
+
+You can tweak the generation by changing the `language`, `card_types`, or `max_cards` parameters sent from the frontend.
+
 ## Pushing your changes
 
 This template repository does not ship with a remote configured. To publish the

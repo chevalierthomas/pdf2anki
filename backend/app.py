@@ -33,8 +33,10 @@ async def extract_cards(request: ExtractRequest, pdf_id: str):
 
     pages = pdf_reader.read_pdf(PDF_STORAGE[pdf_id])
     sections = segmenter.split_into_sections(pages)
-    facts = extractor.extract_facts(sections)
-    cards = cardgen.generate_cards(facts, request.card_types, request.max_cards)
+    facts = extractor.extract_facts(sections, request.language)
+    cards = cardgen.generate_cards(
+        facts, request.card_types, request.max_cards, request.language
+    )
     cards = quality.apply_checks(cards)
     metrics = {"pages": len(pages), "candidates": len(cards)}
 

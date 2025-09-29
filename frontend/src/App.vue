@@ -1,11 +1,21 @@
 <script setup>
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import axios from 'axios'
 
 const pdfId = ref('')
 const cards = ref([])
 const metrics = ref(null)
 const deckName = ref('Demo Deck')
+const language = ref('en')
+
+onMounted(() => {
+  if (typeof navigator !== 'undefined' && navigator.language) {
+    const locale = navigator.language.toLowerCase()
+    if (locale.startsWith('fr')) {
+      language.value = 'fr'
+    }
+  }
+})
 
 async function uploadPDF(event) {
   const file = event.target.files?.[0]
@@ -20,7 +30,7 @@ async function extract() {
   if (!pdfId.value) return
   const body = {
     filename: 'uploaded.pdf',
-    language: 'en',
+    language: language.value,
     card_types: ['qa', 'cloze'],
     max_cards: 50
   }
@@ -75,9 +85,14 @@ async function exportApkg() {
       Pages: {{ metrics.pages }} — Candidates: {{ metrics.candidates }}
     </section>
 
-    <section class="flex items-center gap-3">
+    <section class="flex flex-wrap items-center gap-3">
       <label class="text-sm">Deck name</label>
       <input v-model="deckName" class="border rounded px-2 py-1" />
+      <label class="text-sm">Language</label>
+      <select v-model="language" class="border rounded px-2 py-1">
+        <option value="en">English</option>
+        <option value="fr">Français</option>
+      </select>
       <button
         class="px-3 py-1 rounded bg-emerald-600 text-white disabled:opacity-40"
         :disabled="!cards.length"
