@@ -6,28 +6,10 @@ import os
 import time
 from typing import Dict, List, Optional, Tuple
 
-try:  # Optional dependency
-    from openai import AsyncOpenAI
-    from openai import OpenAIError
-except Exception:  # pragma: no cover - library may be missing during tests
-    AsyncOpenAI = None  # type: ignore
-    OpenAIError = Exception  # type: ignore
+from llm_utils import OpenAIError, REFINEMENT_MODEL, get_async_client
 
 
-DEFAULT_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 MAX_CARDS = int(os.getenv("LLM_REFINEMENT_LIMIT", "15"))
-
-_client: Optional[AsyncOpenAI] = None
-
-
-def _get_client() -> Optional[AsyncOpenAI]:
-    global _client
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key or AsyncOpenAI is None:
-        return None
-    if _client is None:
-        _client = AsyncOpenAI(api_key=api_key)
-    return _client
 
 
 async def refine_cards(
@@ -35,7 +17,7 @@ async def refine_cards(
 ) -> Tuple[List[Dict[str, object]], Dict[str, object]]:
     """Use an LLM to polish questions/answers when credentials are configured."""
 
-    client = _get_client()
+    client = get_async_client()
     if client is None or not cards:
         return cards, {
             "used": False,
@@ -51,7 +33,7 @@ async def refine_cards(
     start = time.perf_counter()
     try:
         response = await client.chat.completions.create(  # type: ignore[union-attr]
-            model=DEFAULT_MODEL,
+            model=REFINEMENT_MODEL,
             temperature=0.2,
             response_format={"type": "json_object"},
             messages=[
@@ -73,7 +55,7 @@ async def refine_cards(
         return cards, {
             "used": True,
             "enriched": 0,
-            "model": DEFAULT_MODEL,
+            "model": REFINEMENT_MODEL,
             "duration_ms": int((time.perf_counter() - start) * 1000),
             "error": str(exc),
         }
@@ -107,7 +89,7 @@ async def refine_cards(
     return cards, {
         "used": True,
         "enriched": enriched,
-        "model": getattr(response, "model", DEFAULT_MODEL),
+        "model": getattr(response, "model", REFINEMENT_MODEL),
         "duration_ms": duration_ms,
         "error": None,
     }

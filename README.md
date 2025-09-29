@@ -2,6 +2,12 @@
 
 Prototype web app that turns course PDFs into review-ready Anki decks.
 
+The backend now defaults to an LLM-first extraction flow: uploaded PDFs are
+segmented, chunked to fit the model context window, and each chunk is analysed by
+an OpenAI model to produce grounded flashcards. When no API key is configured,
+the service automatically falls back to the heuristic extractors described
+below.
+
 ## Project structure
 
 ```
@@ -53,25 +59,25 @@ The backend combines lightweight NLP heuristics to produce higher quality cards:
 
 You can tweak the generation by changing the `language`, `card_types`, or `max_cards` parameters sent from the frontend.
 
-### Optional LLM polishing
+### LLM-backed extraction
 
-If you want richer phrasing, short rationales, or better tag suggestions, provide
-an OpenAI API key and enable the *Enhance with AI* toggle in the frontend. The
-backend will pass the generated cards through `gpt-4o-mini` (or the model you
-configure) to rewrite the question/answer pair while staying faithful to the
-original PDF snippet.
+Provide an OpenAI API key to let the backend generate cards directly from PDF
+chunks. The service keeps each prompt under a configurable token budget and
+streams the chunks sequentially so even long documents stay within model limits.
 
 ```bash
 export OPENAI_API_KEY=sk-your-key
-# Optional: override defaults
-export OPENAI_MODEL=gpt-4o-mini    # any Responses/Chat model works
-export LLM_REFINEMENT_LIMIT=20     # max cards polished per request
+# Optional overrides
+export OPENAI_EXTRACTION_MODEL=gpt-4o-mini     # default model for extraction
+export LLM_MAX_CHUNK_TOKENS=3200               # rough cap per prompt
+export LLM_CHUNK_OVERLAP_TOKENS=200            # overlap between chunks
 ```
 
-With a key in place, the `/extract` response contains an `llm` report detailing
-whether refinement happened, how many cards were enriched, and how long it took.
-If no key is configured, the API responds with `used: false` and the frontend
-explains that AI polishing was skipped.
+The `/extract` endpoint returns an `llm` report detailing how many cards the
+model generated, how many chunks were needed, which model served the request, and
+any failure messages. When the key is missing or a call fails, the backend
+gracefully switches to the heuristic extractors so users still receive candidate
+cards.
 
 ## Pushing your changes
 

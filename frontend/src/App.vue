@@ -104,7 +104,7 @@ async function exportApkg() {
       </select>
       <label class="flex items-center gap-2 text-sm">
         <input type="checkbox" v-model="useLLM" />
-        Enhance with AI
+        Generate with AI (LLM)
       </label>
       <button
         class="px-3 py-1 rounded bg-emerald-600 text-white disabled:opacity-40"
@@ -116,15 +116,22 @@ async function exportApkg() {
     </section>
 
     <section v-if="llmReport" class="text-sm text-gray-600 space-y-1">
-      <p v-if="llmReport.used">
-        AI refined {{ llmReport.enriched }} cards in
-        {{ (llmReport.duration_ms / 1000).toFixed(2) }}s.
-      </p>
-      <p v-else>AI refinement skipped (no API key configured on the server).</p>
+      <template v-if="llmReport.used">
+        <p>
+          AI generated {{ llmReport.generated }} cards across
+          {{ llmReport.chunks || 1 }} chunk{{ llmReport.chunks === 1 ? '' : 's' }} in
+          {{ (llmReport.duration_ms / 1000).toFixed(2) }}s.
+        </p>
+      </template>
+      <template v-else>
+        <p v-if="llmReport.error" class="text-red-600">
+          AI extraction unavailable: {{ llmReport.error }}
+        </p>
+        <p v-else>AI extraction skipped.</p>
+      </template>
       <p v-if="llmReport.model" class="text-xs text-gray-500">
         Model: {{ llmReport.model }}
       </p>
-      <p v-if="llmReport.error" class="text-red-600">{{ llmReport.error }}</p>
     </section>
 
     <section class="grid gap-4 md:grid-cols-2">

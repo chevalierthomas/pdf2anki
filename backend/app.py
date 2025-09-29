@@ -8,7 +8,7 @@ from models import ExportRequest, ExtractRequest, ExtractResponse
 
 import cardgen
 import extractor
-import llm_refiner
+import llm_extractor
 import pdf_reader
 import quality
 import segmenter
@@ -34,16 +34,32 @@ async def extract_cards(request: ExtractRequest, pdf_id: str):
 
     pages = pdf_reader.read_pdf(PDF_STORAGE[pdf_id])
     sections = segmenter.split_into_sections(pages)
-    facts = extractor.extract_facts(sections, request.language)
-    cards = cardgen.generate_cards(
-        facts, request.card_types, request.max_cards, request.language
-    )
-    cards = quality.apply_checks(cards)
-    llm_report = None
+
+    cards: list[dict[str, object]] = []
+    llm_report: dict[str, object] | None = None
+
     if request.use_llm:
-        cards, llm_metrics = await llm_refiner.refine_cards(cards, request.language)
-        cards = quality.apply_checks(cards)
-        llm_report = llm_metrics
+        cards, llm_metrics = await llm_extractor.generate_cards(
+            sections, request.language or "en", request.card_types, request.max_cards
+        )
+        llm_report = {
+            "used": llm_metrics.get("used", False),
+            "generated": int(llm_metrics.get("generated", 0)),
+            "enriched": int(llm_metrics.get("generated", 0)),
+            "model": llm_metrics.get("model"),
+            "duration_ms": int(llm_metrics.get("duration_ms", 0)),
+            "chunks": int(llm_metrics.get("chunks", 0)),
+            "error": llm_metrics.get("error"),
+            "mode": "extraction",
+        }
+
+    if not cards:
+        facts = extractor.extract_facts(sections, request.language)
+        cards = cardgen.generate_cards(
+            facts, request.card_types, request.max_cards, request.language
+        )
+
+    cards = quality.apply_checks(cards)
     metrics = {"pages": float(len(pages)), "candidates": float(len(cards))}
 
     return ExtractResponse(cards=cards, metrics=metrics, llm=llm_report)

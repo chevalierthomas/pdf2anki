@@ -27,9 +27,12 @@ class Card(BaseModel):
 
 class LLMReport(BaseModel):
     used: bool
+    generated: int = 0
     enriched: int = 0
     model: Optional[str] = None
     duration_ms: int = 0
+    chunks: int = 0
+    mode: Literal["extraction", "refinement"] = "extraction"
     error: Optional[str] = None
 
 
