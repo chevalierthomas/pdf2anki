@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+pymupdf
+pytesseract
+pillow
+pandas
+regex
+genanki
