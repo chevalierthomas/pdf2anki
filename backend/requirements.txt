@@ -7,3 +7,4 @@ pillow
 pandas
 regex
 genanki
+openai>=1.40.0

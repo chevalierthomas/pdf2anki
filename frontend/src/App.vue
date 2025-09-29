@@ -7,6 +7,13 @@ const cards = ref([])
 const metrics = ref(null)
 const deckName = ref('Demo Deck')
 const language = ref('en')
+const useLLM = ref(true)
+const llmReport = ref(null)
+
+const formatMetric = (value) => {
+  if (typeof value !== 'number' || Number.isNaN(value)) return value
+  return Number.isInteger(value) ? value : value.toFixed(2)
+}
 
 onMounted(() => {
   if (typeof navigator !== 'undefined' && navigator.language) {
@@ -32,11 +39,13 @@ async function extract() {
     filename: 'uploaded.pdf',
     language: language.value,
     card_types: ['qa', 'cloze'],
-    max_cards: 50
+    max_cards: 50,
+    use_llm: useLLM.value
   }
   const { data } = await axios.post(`/api/extract?pdf_id=${pdfId.value}`, body)
   cards.value = data.cards
   metrics.value = data.metrics
+  llmReport.value = data.llm
 }
 
 async function exportApkg() {
@@ -82,7 +91,7 @@ async function exportApkg() {
     </section>
 
     <section v-if="metrics" class="text-sm text-gray-600">
-      Pages: {{ metrics.pages }} — Candidates: {{ metrics.candidates }}
+      Pages: {{ formatMetric(metrics.pages) }} — Candidates: {{ formatMetric(metrics.candidates) }}
     </section>
 
     <section class="flex flex-wrap items-center gap-3">
@@ -93,6 +102,10 @@ async function exportApkg() {
         <option value="en">English</option>
         <option value="fr">Français</option>
       </select>
+      <label class="flex items-center gap-2 text-sm">
+        <input type="checkbox" v-model="useLLM" />
+        Enhance with AI
+      </label>
       <button
         class="px-3 py-1 rounded bg-emerald-600 text-white disabled:opacity-40"
         :disabled="!cards.length"
@@ -100,6 +113,18 @@ async function exportApkg() {
       >
         Export .apkg
       </button>
+    </section>
+
+    <section v-if="llmReport" class="text-sm text-gray-600 space-y-1">
+      <p v-if="llmReport.used">
+        AI refined {{ llmReport.enriched }} cards in
+        {{ (llmReport.duration_ms / 1000).toFixed(2) }}s.
+      </p>
+      <p v-else>AI refinement skipped (no API key configured on the server).</p>
+      <p v-if="llmReport.model" class="text-xs text-gray-500">
+        Model: {{ llmReport.model }}
+      </p>
+      <p v-if="llmReport.error" class="text-red-600">{{ llmReport.error }}</p>
     </section>
 
     <section class="grid gap-4 md:grid-cols-2">
@@ -111,6 +136,9 @@ async function exportApkg() {
         <div class="prose" v-html="card.question"></div>
         <p v-if="card.answer" class="text-gray-800">{{ card.answer }}</p>
         <p class="text-xs text-gray-500 max-h-16 overflow-hidden">{{ card.source_snippet }}</p>
+        <p v-if="card.explanation" class="text-xs text-amber-600">
+          {{ card.explanation }}
+        </p>
         <div class="flex flex-wrap gap-2">
           <span
             v-for="tag in card.tags"

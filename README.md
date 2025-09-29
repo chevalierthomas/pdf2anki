@@ -53,6 +53,26 @@ The backend combines lightweight NLP heuristics to produce higher quality cards:
 
 You can tweak the generation by changing the `language`, `card_types`, or `max_cards` parameters sent from the frontend.
 
+### Optional LLM polishing
+
+If you want richer phrasing, short rationales, or better tag suggestions, provide
+an OpenAI API key and enable the *Enhance with AI* toggle in the frontend. The
+backend will pass the generated cards through `gpt-4o-mini` (or the model you
+configure) to rewrite the question/answer pair while staying faithful to the
+original PDF snippet.
+
+```bash
+export OPENAI_API_KEY=sk-your-key
+# Optional: override defaults
+export OPENAI_MODEL=gpt-4o-mini    # any Responses/Chat model works
+export LLM_REFINEMENT_LIMIT=20     # max cards polished per request
+```
+
+With a key in place, the `/extract` response contains an `llm` report detailing
+whether refinement happened, how many cards were enriched, and how long it took.
+If no key is configured, the API responds with `used: false` and the frontend
+explains that AI polishing was skipped.
+
 ## Pushing your changes
 
 This template repository does not ship with a remote configured. To publish the

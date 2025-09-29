@@ -46,6 +46,7 @@ def _make_card(
     page: int,
     source: str,
     tags: List[str],
+    explanation: str | None = None,
 ) -> Dict[str, object]:
     return {
         "id": _new_id(),
@@ -56,6 +57,7 @@ def _make_card(
         "source_page": page,
         "confidence": _confidence(question, answer),
         "source_snippet": source,
+        "explanation": explanation,
     }
 
 

@@ -8,6 +8,7 @@ from models import ExportRequest, ExtractRequest, ExtractResponse
 
 import cardgen
 import extractor
+import llm_refiner
 import pdf_reader
 import quality
 import segmenter
@@ -38,9 +39,14 @@ async def extract_cards(request: ExtractRequest, pdf_id: str):
         facts, request.card_types, request.max_cards, request.language
     )
     cards = quality.apply_checks(cards)
-    metrics = {"pages": len(pages), "candidates": len(cards)}
+    llm_report = None
+    if request.use_llm:
+        cards, llm_metrics = await llm_refiner.refine_cards(cards, request.language)
+        cards = quality.apply_checks(cards)
+        llm_report = llm_metrics
+    metrics = {"pages": float(len(pages)), "candidates": float(len(cards))}
 
-    return ExtractResponse(cards=cards, metrics=metrics)
+    return ExtractResponse(cards=cards, metrics=metrics, llm=llm_report)
 
 
 @app.post("/export.apkg")

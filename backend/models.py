@@ -10,6 +10,7 @@ class ExtractRequest(BaseModel):
     language: Optional[str] = "en"
     card_types: List[CardType] = ["qa", "cloze"]
     max_cards: int = 100
+    use_llm: bool = True
 
 
 class Card(BaseModel):
@@ -21,11 +22,21 @@ class Card(BaseModel):
     source_page: int
     confidence: float
     source_snippet: str
+    explanation: Optional[str] = None
+
+
+class LLMReport(BaseModel):
+    used: bool
+    enriched: int = 0
+    model: Optional[str] = None
+    duration_ms: int = 0
+    error: Optional[str] = None
 
 
 class ExtractResponse(BaseModel):
     cards: List[Card]
-    metrics: Dict[str, int]
+    metrics: Dict[str, float]
+    llm: Optional[LLMReport] = None
 
 
 class ExportRequest(BaseModel):
