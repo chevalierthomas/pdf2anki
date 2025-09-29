@@ -16,13 +16,21 @@ pdf2anki/
 
 ```bash
 cd backend
-python -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate
-pip install -r requirements.txt
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
 uvicorn app:app --reload
 ```
 
+> **Note:** Some Linux distributions do not ship a `python` shim by default.
+> If `python` is not found, install the `python-is-python3` package or use
+> `python3` in the commands above.
+
 ### Frontend
+
+The Vite tooling requires **Node.js 18 or newer**. If your system Node is
+older, switch versions with a tool like `nvm` before running the dev server.
 
 ```bash
 cd frontend

@@ -2,6 +2,7 @@ fastapi
 uvicorn[standard]
 pymupdf
 pytesseract
+python-multipart
 pillow
 pandas
 regex
