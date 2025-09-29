@@ -29,8 +29,10 @@ uvicorn app:app --reload
 
 ### Frontend
 
-The Vite tooling requires **Node.js 18 or newer**. If your system Node is
-older, switch versions with a tool like `nvm` before running the dev server.
+The frontend is pinned to Vite 4 so it works with **Node.js 16.20+**.
+Using a newer LTS (18/20) is still recommended, but no longer required to run
+the development server. If you do switch Node versions with a tool such as
+`nvm`, reinstall dependencies afterwards.
 
 ```bash
 cd frontend
