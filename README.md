@@ -2,6 +2,8 @@
 
 Application web complète pour transformer rapidement un fichier PDF en deck Anki prêt à l'emploi.
 
+> ℹ️ Depuis cette version, la génération de cartes tente d'utiliser l'API ChatGPT. Si aucune clé OpenAI n'est disponible, une heuristique locale de secours est appliquée.
+
 ## Structure du projet
 
 - `backend/` — API FastAPI. Elle reçoit un fichier PDF, extrait le texte, génère des cartes et construit un fichier `.apkg` à télécharger.
@@ -16,6 +18,8 @@ cd backend
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements-dev.txt
+export OPENAI_API_KEY="votre_cle"
+# optionnel : export OPENAI_MODEL="gpt-4o-mini"
 uvicorn app.main:app --reload
 ```
 
@@ -28,6 +32,8 @@ npm run dev
 ```
 
 L'interface de développement du frontend proxy automatiquement les requêtes `/api` vers `http://localhost:8000`.
+
+> 💡 Les dépendances front-end ciblent désormais Vite 4, compatible avec Node.js 16+ pour éviter les erreurs `crypto.getRandomValues` observées avec Node 16.
 
 ## Tests
 
@@ -43,4 +49,4 @@ pytest
 3. Cliquez sur « Générer le deck ».
 4. Téléchargez le fichier `.apkg` proposé et importez-le dans Anki.
 
-Les cartes sont générées via une heuristique simple qui détecte les structures « terme : définition » et scinde les paragraphes en question/réponse.
+Les cartes sont générées via l'API ChatGPT lorsqu'une clé `OPENAI_API_KEY` est configurée. En cas d'échec ou d'absence de clé, le système retombe sur une heuristique locale détectant les structures « terme : définition » et scindant les paragraphes en question/réponse.
