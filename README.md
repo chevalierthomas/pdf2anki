@@ -6,7 +6,7 @@ Application web complète pour transformer rapidement un fichier PDF en deck Ank
 
 ## Structure du projet
 
-- `backend/` — API FastAPI. Elle reçoit un fichier PDF, extrait le texte, génère des cartes et construit un fichier `.apkg` à télécharger.
+- `backend/` — API FastAPI. Elle reçoit un fichier PDF, extrait le texte, génère des cartes, renvoie leur prévisualisation et construit un fichier `.apkg` encodé en Base64 pour téléchargement.
 - `frontend/` — Interface Vue 3 avec Vite offrant une expérience moderne de dépôt de fichier.
 
 ## Démarrage rapide
@@ -47,6 +47,7 @@ pytest
 1. Ouvrez l'interface web.
 2. Glissez-déposez ou sélectionnez votre PDF.
 3. Cliquez sur « Générer le deck ».
-4. Téléchargez le fichier `.apkg` proposé et importez-le dans Anki.
+4. Passez en revue la prévisualisation des cartes proposées.
+5. Téléchargez le fichier `.apkg` fourni et importez-le dans Anki.
 
 Les cartes sont générées via l'API ChatGPT lorsqu'une clé `OPENAI_API_KEY` est configurée. En cas d'échec ou d'absence de clé, le système retombe sur une heuristique locale détectant les structures « terme : définition » et scindant les paragraphes en question/réponse.

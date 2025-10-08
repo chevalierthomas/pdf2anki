@@ -1,3 +1,4 @@
+import base64
 from pathlib import Path
 
 from backend.app.flashcards import (
@@ -6,6 +7,8 @@ from backend.app.flashcards import (
     build_flashcards_from_text,
     build_flashcards_with_heuristics,
 )
+from backend.app import main as main_module
+from fastapi.testclient import TestClient
 
 
 def test_build_flashcards_with_heuristics_term_definition():
@@ -41,3 +44,32 @@ def test_build_anki_deck():
     deck_path = build_anki_deck(cards, "Test Deck")
     assert deck_path.endswith(".apkg")
     Path(deck_path).unlink()
+
+
+def test_generate_endpoint_returns_preview(monkeypatch, tmp_path):
+    monkeypatch.setattr(main_module, "extract_pdf_text", lambda data: "Term: Definition")
+    monkeypatch.setattr(
+        main_module,
+        "build_flashcards_from_text",
+        lambda text: [Flashcard(front="Q", back="A")],
+    )
+
+    deck_path = tmp_path / "deck.apkg"
+
+    def fake_build_anki_deck(cards, title):
+        deck_path.write_bytes(b"dummy")
+        return str(deck_path)
+
+    monkeypatch.setattr(main_module, "build_anki_deck", fake_build_anki_deck)
+
+    client = TestClient(main_module.app)
+    response = client.post(
+        "/api/generate",
+        files={"pdf": ("test.pdf", b"data", "application/pdf")},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["deck_filename"] == "test.apkg"
+    assert payload["cards"] == [{"front": "Q", "back": "A"}]
+    assert base64.b64decode(payload["deck_data"]) == b"dummy"

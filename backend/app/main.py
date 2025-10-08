@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+import base64
 from pathlib import Path
 
 from fastapi import BackgroundTasks, FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
 
 from .flashcards import (
     FlashcardGenerationError,
@@ -35,7 +35,7 @@ app.add_middleware(
 @app.post("/api/generate")
 async def generate_deck(
     background_tasks: BackgroundTasks, pdf: UploadFile = File(...)
-) -> FileResponse:
+):
     allowed_types = {"application/pdf", "application/x-pdf", "application/acrobat", "application/octet-stream"}
     if pdf.content_type not in allowed_types:
         raise HTTPException(status_code=400, detail="Le fichier doit être un PDF.")
@@ -54,10 +54,15 @@ async def generate_deck(
 
     filename = f"{deck_title}.apkg"
 
+    deck_bytes = Path(deck_path).read_bytes()
+    deck_base64 = base64.b64encode(deck_bytes).decode("ascii")
+
     background_tasks.add_task(_cleanup_file, Path(deck_path))
 
-    return FileResponse(
-        path=deck_path,
-        filename=filename,
-        media_type="application/apkg",
-    )
+    serialized_cards = [{"front": card.front, "back": card.back} for card in cards]
+
+    return {
+        "deck_filename": filename,
+        "deck_data": deck_base64,
+        "cards": serialized_cards,
+    }

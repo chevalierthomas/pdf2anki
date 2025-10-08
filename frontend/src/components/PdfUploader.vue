@@ -19,8 +19,36 @@
 
     <transition name="fade">
       <div v-if="success" class="alert alert--success">
-        Deck généré ! <a :href="downloadUrl" download>Cliquer ici pour télécharger</a>.
+        Cartes générées ! Vérifiez la prévisualisation ci-dessous avant de télécharger le deck.
       </div>
+    </transition>
+
+    <transition name="fade">
+      <section v-if="cards.length" class="preview">
+        <header class="preview__header">
+          <div>
+            <h3>Prévisualisation des cartes</h3>
+            <p>{{ cards.length }} carte<span v-if="cards.length > 1">s</span> générée<span v-if="cards.length > 1">s</span>.</p>
+          </div>
+          <a
+            v-if="downloadUrl"
+            class="button-primary preview__download"
+            :href="downloadUrl"
+            :download="downloadFilename"
+          >
+            Télécharger le deck Anki
+          </a>
+        </header>
+        <ul class="preview__list">
+          <li v-for="(card, index) in cards" :key="`${index}-${card.front}`" class="preview__card">
+            <h4>Carte {{ index + 1 }}</h4>
+            <p class="preview__label">Question</p>
+            <p class="preview__content" v-html="card.front"></p>
+            <p class="preview__label">Réponse</p>
+            <p class="preview__content" v-html="card.back"></p>
+          </li>
+        </ul>
+      </section>
     </transition>
 
     <button type="submit" class="button-primary" :disabled="isLoading">
@@ -44,10 +72,13 @@ const success = ref(false)
 const isLoading = ref(false)
 const isDragging = ref(false)
 const downloadUrl = ref('')
+const downloadFilename = ref('deck.apkg')
+const cards = ref([])
 
 const resetFeedback = () => {
   error.value = ''
   success.value = false
+  cards.value = []
   if (downloadUrl.value) {
     URL.revokeObjectURL(downloadUrl.value)
     downloadUrl.value = ''
@@ -115,8 +146,22 @@ const submit = async () => {
       throw new Error(payload.detail || 'La génération a échoué.')
     }
 
-    const blob = await response.blob()
+    const payload = await response.json()
+    if (!payload?.deck_data || !Array.isArray(payload?.cards)) {
+      throw new Error('Réponse inattendue du serveur.')
+    }
+
+    const binary = Uint8Array.from(atob(payload.deck_data), (char) => char.charCodeAt(0))
+    const blob = new Blob([binary], { type: 'application/apkg' })
+
     downloadUrl.value = URL.createObjectURL(blob)
+    downloadFilename.value = payload.deck_filename || 'deck.apkg'
+    const sanitizedCards = payload.cards.map((card) => ({
+      front: String(card?.front ?? ''),
+      back: String(card?.back ?? '')
+    }))
+
+    cards.value = sanitizedCards
     success.value = true
   } catch (err) {
     error.value = err.message
@@ -176,10 +221,90 @@ const submit = async () => {
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.button-primary {
+.button-primary { 
   background: linear-gradient(135deg, #2563eb, #3b82f6);
   color: white;
   box-shadow: 0 10px 25px rgba(37, 99, 235, 0.35);
+}
+
+.preview {
+  border: 1px solid rgba(37, 99, 235, 0.15);
+  border-radius: 16px;
+  padding: 1.5rem;
+  background: rgba(219, 234, 254, 0.35);
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.preview__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.preview__header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #1f2937;
+}
+
+.preview__header p {
+  margin: 0.25rem 0 0;
+  color: #374151;
+}
+
+.preview__download {
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.preview__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 1rem;
+}
+
+.preview__card {
+  background: white;
+  border-radius: 14px;
+  padding: 1.25rem;
+  box-shadow: 0 12px 30px rgba(37, 99, 235, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.preview__card h4 {
+  margin: 0;
+  color: #1d4ed8;
+  font-size: 1rem;
+}
+
+.preview__label {
+  margin: 0;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6b7280;
+}
+
+.preview__content {
+  margin: 0;
+  color: #111827;
+  background: rgba(59, 130, 246, 0.08);
+  border-radius: 10px;
+  padding: 0.75rem;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.preview__content :deep(br) {
+  content: '';
 }
 
 .button-primary:disabled {
