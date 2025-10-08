@@ -6,6 +6,7 @@ from backend.app.flashcards import (
     build_anki_deck,
     build_flashcards_from_text,
     build_flashcards_with_heuristics,
+    _clean_cards,
 )
 from backend.app import main as main_module
 from fastapi.testclient import TestClient
@@ -44,6 +45,19 @@ def test_build_anki_deck():
     deck_path = build_anki_deck(cards, "Test Deck")
     assert deck_path.endswith(".apkg")
     Path(deck_path).unlink()
+
+
+def test_clean_cards_filters_non_knowledge_entries():
+    raw_cards = [
+        Flashcard(front="- Question longue", back="rédiger une réponse ordonnée"),
+        Flashcard(front="Des questions sur documents", back="il faut garder un regard critique"),
+        Flashcard(front="Diktat", back="Nom donné au traité de Versailles par les Allemands pour souligner son injustice."),
+    ]
+
+    cleaned = _clean_cards(raw_cards)
+
+    assert len(cleaned) == 1
+    assert cleaned[0].front == "Diktat"
 
 
 def test_generate_endpoint_returns_preview(monkeypatch, tmp_path):

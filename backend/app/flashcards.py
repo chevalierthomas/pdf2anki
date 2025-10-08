@@ -82,19 +82,49 @@ def _summarize_paragraph(paragraph: str) -> Flashcard | None:
     return Flashcard(front=front, back=back)
 
 
+def _normalize_field(value: str) -> str:
+    """Remove bullet symbols, numbering and generic prefixes."""
+
+    text = value.strip()
+    text = re.sub(r"^[\-–•●]+\s*", "", text)
+    text = re.sub(r"^\(?[0-9]+[\.)]\s*", "", text)
+    text = re.sub(r"^\(?[ivxlcdm]+[\.)]\s*", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"^(?:question|questions|réponse|réponses)\s*[:\-]\s*", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"^(?:des\s+)?questions?\s+sur\s+documents?\b", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"^question\s+longue\b", "", text, flags=re.IGNORECASE)
+    return text.strip()
+
+
+def _is_substantive(text: str) -> bool:
+    if not text:
+        return False
+    words = re.findall(r"[A-Za-zÀ-ÖØ-öø-ÿ]+", text.lower())
+    if not words:
+        return False
+    banned = {"question", "questions", "réponse", "réponses", "document", "documents", "vocabulaire"}
+    if len(words) == 1 and words[0] in banned:
+        return False
+    if len(text) < 3:
+        return False
+    first_word = words[0]
+    if first_word in {"question", "questions", "réponse", "réponses"} and len(words) <= 2:
+        return False
+    return True
+
+
 def _clean_cards(cards: Iterable[Flashcard]) -> List[Flashcard]:
     seen = set()
     unique_cards: List[Flashcard] = []
     for card in cards:
-        key = (card.front.strip(), card.back.strip())
-        if not card.front.strip() or not card.back.strip():
+        front = _normalize_field(card.front)
+        back = _normalize_field(card.back)
+        if not _is_substantive(front) or not _is_substantive(back):
             continue
+        key = (front, back)
         if key in seen:
             continue
         seen.add(key)
-        unique_cards.append(
-            Flashcard(front=card.front.strip(), back=card.back.strip())
-        )
+        unique_cards.append(Flashcard(front=front, back=back))
     return unique_cards
 
 
@@ -140,12 +170,14 @@ def _call_chatgpt_for_cards(text: str, max_cards: int = 40) -> List[Flashcard]:
 
     system_prompt = (
         "Tu es un expert en pédagogie qui crée des cartes mémoire Anki au format question/réponse. "
-        "Respecte le contenu fourni et réponds en JSON pur."
+        "Sélectionne uniquement des connaissances factuelles utiles pour réviser : définitions, dates, événements, concepts, "
+        "pas de consignes méthodologiques ou métacommentaires. Réponds en JSON pur."
     )
     user_prompt = (
-        "Extrait jusqu'à {max_cards} cartes mémoire pertinentes du texte suivant. "
-        "Réponds uniquement en JSON avec la forme: {{\"flashcards\": [{{\"front\": \"...\", \"back\": \"...\"}}]}}. "
-        "Pas de texte hors JSON.\n\nTexte:\n{texte}"
+        "À partir du texte suivant, identifie les informations clés à mémoriser (faits historiques, notions importantes, définitions). "
+        "Ignore les indications de méthode, les consignes d'examen ou les phrases qui n'apportent pas de connaissance. "
+        "Génère au maximum {max_cards} cartes pertinentes et réponds uniquement en JSON au format "
+        "{{\"flashcards\": [{{\"front\": \"...\", \"back\": \"...\"}}]}} sans autre texte.\n\nTexte:\n{texte}"
     ).format(max_cards=max_cards, texte=trimmed_text)
 
     try:

@@ -51,3 +51,5 @@ pytest
 5. Téléchargez le fichier `.apkg` fourni et importez-le dans Anki.
 
 Les cartes sont générées via l'API ChatGPT lorsqu'une clé `OPENAI_API_KEY` est configurée. En cas d'échec ou d'absence de clé, le système retombe sur une heuristique locale détectant les structures « terme : définition » et scindant les paragraphes en question/réponse.
+
+> ✅ Une étape de nettoyage supprime automatiquement les consignes méthodologiques ou les entrées sans contenu factuel afin de ne conserver que les connaissances utiles pour vos révisions.
